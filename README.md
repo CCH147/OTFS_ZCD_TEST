@@ -561,39 +561,7 @@ ak(k)
 
 ---
 
-# 用生活比喻理解
-
-想像現在有：
-
-```text
-鋼琴 + 吉他 + 小提琴
-```
-
-三種聲音同時播放。
-
-你耳朵聽到的是：
-
-```text
-混合後的聲音
-```
-
-但你想知道：
-
-```text
-鋼琴多大聲？
-吉他多大聲？
-小提琴多大聲？
-```
-
-這其實就是：
-
-```text
-把混在一起的訊號拆回來
-```
-
----
-
-# 我們的問題也是一樣
+# RX接收細節
 
 接收端拿到：
 
@@ -730,7 +698,7 @@ ak  = 每個模板的權重（我們想求的答案）
 
 ---
 
-# 更白話一點：
+# 簡單來說：
 
 如果：
 
@@ -835,7 +803,7 @@ ak_rec = A \ y;
 
 ---
 
-# 為什麼用反斜線 `\`？
+# 反斜線 `\`
 
 MATLAB 的：
 
@@ -862,7 +830,7 @@ A*ak ≈ y
 
 ---
 
-# 為什麼叫 Least-Squares？
+# 為什麼使用 Least-Squares？
 
 因為：
 
@@ -934,7 +902,7 @@ X_DD
 
 ---
 
-# 為什麼這個方法最後成功？
+# 為何這個方法最後成功？
 
 因為它：
 
@@ -968,7 +936,7 @@ zero crossing
 
 ```text
 Trials         : 200
-Mean BER       : 0
+Mean BER       : 0.00000000
 Success Rate   : 100%
 ```
 
@@ -1126,19 +1094,6 @@ otfs_zcd_end_to_end_montecarlo
 ```
 
 即可。
-
----
-
-# 專案檔案說明
-
-```text
-.
-├── otfs_zcd_end_to_end_montecarlo.m   主模擬
-├── zcd_tx_symbol.m                    ZCD transmitter
-├── zcd_rx_symbol_ls.m                 Least-squares ZCD receiver
-├── otfs_cp_vs_zcd_compare.m           與 CP-OTFS 比較
-└── README.md
-```
 
 ---
 
