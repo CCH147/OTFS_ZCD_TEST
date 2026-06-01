@@ -1058,6 +1058,8 @@ NMSE：
 Mean NMSE      : -287.20 dB
 ```
 
+![image](output.png)
+
 代表：
 
 ```text
