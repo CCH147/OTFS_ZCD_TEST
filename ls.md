@@ -3,7 +3,11 @@
 為了模擬程式碼內部的每一道四則運算，我們設定以下參數進行完全展開：
 * **子載波數量**: $M = 2$ （欲估計係數為 $a_1, a_2$）
 * **基頻頻率**: $f_0 = 1 \text{ Hz}$
-* **採樣點數**: $L = 3$ ，時間向量 $\mathbf{t} = \begin{bmatrix} t_1 \\ t_2 \\ t_3 \end{bmatrix} = \begin{bmatrix} 0 \\ 0.25 \\ 0.5 \end{bmatrix}$
+* **採樣點數**: $L = 3$ ，時間向量
+
+$$
+f{t} = \begin{bmatrix} t_1 \\ t_2 \\ t_3 \end{bmatrix} = \begin{bmatrix} 0 \\ 0.25 \\ 0.5 \end{bmatrix}
+$$
 * **載波振幅**: $A_c = 1$
 
 ---
@@ -23,7 +27,10 @@
   * $A(3,2) = \exp(j \cdot 2\pi \cdot 2 \cdot 1 \cdot 0.5) = \exp(j2\pi) = \cos(2\pi) + j\sin(2\pi) = 1 + j0 = 1$
 
 **觀測矩陣 $A$ 的最終結果：**
-$$A = \begin{bmatrix} 1 & 1 \\ j & -1 \\ -1 & 1 \end{bmatrix}$$
+
+$$
+A = \begin{bmatrix} 1 & 1 \\ j & -1 \\ -1 & 1 \end{bmatrix}
+$$
 
 ---
 
@@ -65,7 +72,7 @@ $$y = \text{rx}\_\text{signal} - \text{carrier} = \begin{bmatrix} 10 \\ -5+3j \\
 ---
 
 ### 步驟三：最小平方法內部計算 (`A \ y` 的每一步加減乘除)
-MATLAB 執行 `ak_rec = A \ y` 時，因為列數大於欄數（$3 > 2$），內部會解標準方程（Normal Equations）：$\mathbf{a_k} = (A^H A)^{-1} A^H y$。
+MATLAB 執行 `ak_rec = A \ y` 時，因為列數大於欄數（$3 > 2$），內部會解標準方程（Normal Equations）： $\mathbf{a_k} = (A^H A)^{-1} A^H y$。
 
 #### 1. 計算 $A^H$（共軛轉置矩陣：行列對調，虛部變號）
 $$A^H = \begin{bmatrix} 1 & -j & -1 \\ 1 & -1 & 1 \end{bmatrix}$$
