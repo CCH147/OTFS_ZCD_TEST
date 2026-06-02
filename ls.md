@@ -93,10 +93,17 @@ $$A^H y = \begin{bmatrix} 1 & -j & -1 \\ 1 & -1 & 1 \end{bmatrix} \begin{bmatrix
 $$A^H y = \begin{bmatrix} 9 + 5j \\ 15 - 3j \end{bmatrix}$$
 
 #### 4. 計算 $(A^H A)^{-1}$ 反矩陣
-利用 $2 \times 2$ 矩陣求逆公式 $\begin{bmatrix} a & b \\ c & d \end{bmatrix}^{-1} = \frac{1}{ad-bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}$：
+利用 $2 \times 2$ 矩陣求逆公式 
+$$
+\begin{bmatrix} a & b \\ c & d \end{bmatrix}^{-1} = \frac{1}{ad-bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}
+$$
+
 * **行列式值 (Determinant) $\Delta$**: $3 \cdot 3 - (j \cdot -j) = 9 - (-j^2) = 9 - (-(-1)) = 9 - 1 = 8$
 * **反矩陣結果**:
-  $$(A^H A)^{-1} = \frac{1}{8} \begin{bmatrix} 3 & -j \\ j & 3 \end{bmatrix}$$
+
+$$
+(A^H A)^{-1} = \frac{1}{8} \begin{bmatrix} 3 & -j \\ j & 3 \end{bmatrix}
+$$
 
 #### 5. 最終解出 $\mathbf{a_k} = (A^H A)^{-1} A^H y$
 $$\mathbf{a_k} = \frac{1}{8} \begin{bmatrix} 3 & -j \\ j & 3 \end{bmatrix} \begin{bmatrix} 9 + 5j \\ 15 - 3j \end{bmatrix}$$
