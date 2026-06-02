@@ -94,6 +94,7 @@ $$A^H y = \begin{bmatrix} 9 + 5j \\ 15 - 3j \end{bmatrix}$$
 
 #### 4. 計算 $(A^H A)^{-1}$ 反矩陣
 利用 $2 \times 2$ 矩陣求逆公式 
+
 $$
 \begin{bmatrix} a & b \\ c & d \end{bmatrix}^{-1} = \frac{1}{ad-bc}\begin{bmatrix} d & -b \\ -c & a \end{bmatrix}
 $$
