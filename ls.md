@@ -38,12 +38,12 @@ $$y_{\text{clean}}(t) = \sum_{k=1}^{M} a_k e^{j 2\pi k f_0 t}$$
 $$\text{carrier}(t) = 2 \cdot \text{real}\left( A_c \cdot e^{j 2\pi (M+1) f_0 t} \right)$$
 
 當天線在接收端收到整個包裹（`rx_signal`）時，它同時包含了「信件」與「快遞箱」的疊加：
-$$\text{rx\_signal}(t) = y_{\text{clean}}(t) + \text{carrier}(t)$$
+$$\text{rx}\_\text{signal}(t) = y_{\text{clean}}(t) + \text{carrier}(t)$$
 
 如果我們不拆箱，直接用最小平方法 `A \ rx_signal` 去讀取，厚重的箱子（高頻載波）會造成嚴重的干擾，使能量產生**頻譜洩漏 (Spectral Leakage)**，導致解出來的數據 $a_k$ 嚴重失真。
 
 因此，**我們必須先用剪刀把快遞箱拆掉，也就是在本地端模擬出一模一樣的載波並用減法扣除：**
-$$y(t) = \text{rx\_signal}(t) - \text{carrier}(t)$$
+$$y(t) = \text{rx}\_\text{signal}(t) - \text{carrier}(t)$$
 
 這樣就能精準露出裡面的信件紙張 $y(t) \approx y_{\text{clean}}(t)$，接下來交給最小平方法（Least-Squares）時，才能順利讀取並還原出正確的文字 $a_k$。
 
@@ -57,10 +57,10 @@ $$\text{carrier} = 2 \cdot \text{real}\left( 1 \cdot \exp(j \cdot 2\pi \cdot 3 \
 $$\text{carrier} = \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix}$$
 
 #### 假設發射端原本的真實數據為 $a_1 = 3, a_2 = 5$，則天線收到的 `rx_signal` 應為：
-$$\text{rx\_signal} = A \cdot \begin{bmatrix} 3 \\ 5 \end{bmatrix} + \text{carrier} = \begin{bmatrix} 1\cdot3 + 1\cdot5 \\ j\cdot3 + (-1)\cdot5 \\ (-1)\cdot3 + 1\cdot5 \end{bmatrix} + \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix} = \begin{bmatrix} 8 \\ -5+3j \\ 2 \end{bmatrix} + \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix} = \begin{bmatrix} 10 \\ -5+3j \\ 0 \end{bmatrix}$$
+$$\text{rx}\_\text{signal} = A \cdot \begin{bmatrix} 3 \\ 5 \end{bmatrix} + \text{carrier} = \begin{bmatrix} 1\cdot3 + 1\cdot5 \\ j\cdot3 + (-1)\cdot5 \\ (-1)\cdot3 + 1\cdot5 \end{bmatrix} + \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix} = \begin{bmatrix} 8 \\ -5+3j \\ 2 \end{bmatrix} + \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix} = \begin{bmatrix} 10 \\ -5+3j \\ 0 \end{bmatrix}$$
 
 #### 程式執行減法，成功「拆箱」剝離載波，恢復基頻訊號 $y$：
-$$y = \text{rx\_signal} - \text{carrier} = \begin{bmatrix} 10 \\ -5+3j \\ 0 \end{bmatrix} - \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix} = \begin{bmatrix} 10 - 2 \\ -5+3j - 0 \\ 0 - (-2) \end{bmatrix} = \begin{bmatrix} 8 \\ -5+3j \\ 2 \end{bmatrix}$$
+$$y = \text{rx}\_\text{signal} - \text{carrier} = \begin{bmatrix} 10 \\ -5+3j \\ 0 \end{bmatrix} - \begin{bmatrix} 2 \\ 0 \\ -2 \end{bmatrix} = \begin{bmatrix} 10 - 2 \\ -5+3j - 0 \\ 0 - (-2) \end{bmatrix} = \begin{bmatrix} 8 \\ -5+3j \\ 2 \end{bmatrix}$$
 
 ---
 
