@@ -8,1040 +8,161 @@ OTFS
 ZCD
 ```
 
-並成功完成：
+模擬以下：
 
 ```text
 發射 → 傳輸 → 接收 → 還原
 ```
 
-完整 end-to-end 驗證。
-
----
-
-# 這個專案在做什麼？
-
-
-本專案基本流程如下：
+# 本專案基本流程如下：
 
 ```text
-bit
-→ OTFS
-→ ZCD 波形
-→ 傳輸
-→ ZCD 解碼
-→ OTFS 解調
-→ recover 原始 bit
-```
 
-最後成功做到：
-
-```text
-BER = 0
-```
-
-也就是：
-
-> 傳出去什麼，收回來就是什麼。
-
----
-
-# OTFS 是什麼？
-
-可以把 OTFS 想像成：
-
-## 把資料排成一張表格
-
-例如：
-
-```text
-┌────┬────┬────┬────┐
-│  3 │ 12 │  7 │ 15 │
-├────┼────┼────┼────┤
-│  9 │  1 │  4 │  8 │
-├────┼────┼────┼────┤
-│  2 │ 11 │ 14 │  5 │
-└────┴────┴────┴────┘
-```
-
-這就是：
-
-```text
-Delay-Doppler Domain
-```
-
-簡稱：
-
-```text
-DD domain
-```
-
-每個格子裡都放一個 symbol。
-
----
-
-# OTFS 做了什麼？
-
-OTFS 的工作就是：
-
-把：
-
-```text
-DD domain
-```
-
-轉成：
-
-```text
-TF domain
-```
-
-也就是：
-
-```text
-Time-Frequency domain
-```
-
-因為：
-
-```text
-無線電實際上是靠時間與頻率傳送的
-```
-
-所以：
-
-```text
-資料表格
-↓
-轉換
-↓
-變成可以發射的訊號
+→ 隨機產生資料 
+→ OTFS 調變 (ISFFT)
+→ ZCD 波形 (時域波形生成)
+→ 傳輸 (理想/無雜訊通道)
+→ ZCD 接收 (載波移除 + 最小平方法估計)
+→ OTFS 解調 (SFFT)
+→ QAM 解調 
+→ 還原原始資料
 ```
 
 ---
 
-# 那 ZCD 又是什麼？
+# 2. 模擬參數設定
 
-ZCD 可以理解成：
-
-```text
-過零點檢測
-```
-
-意思是：
-
-我們不直接讀波形振幅。
-
-而是看：
-
-```text
-波形什麼時候穿過 0
-```
-
-例如：
-
-```text
-+0.5
-+0.2
-+0.1
- 0
--0.2
--0.6
-```
-
-中間：
-
-```text
-從正變負
-```
-
-那個瞬間就是：
-
-```text
-zero crossing
-```
+| 參數符號 | 參數名稱 | 設定值 |
+| :--- | :--- | :--- |
+| $M$ | 子載波數量 (延遲網格數) | 16 |
+| $N$ | 時間槽數量 (都卜勒網格數) | 8 |
+| $M \times N$ | 每個 OTFS 訊框的總符號數 | 128 |
+| $f_0$ | 基頻頻率 (Subcarrier Spacing) | 20 kHz |
+| $T = 1/f_0$ | 符號週期時間 | 50 $\mu$s |
+| $f_s$ | 系統取樣頻率 | $1000 \times f_0 \times (M+1)$ |
 
 ---
 
+# 3. OTFS 二維網格變換
 
-```text
-zero crossing
-```
+### 3.1 延遲-都卜勒域資料生成
+輸入資料在延遲-都卜勒網格 $D$ 上進行 QAM 映射，網格座標為 $k \in [0, M-1]$ (延遲軸) 與 $l \in [0, N-1]$ (都卜勒軸)，生成二維離散信號 $X_{DD}[k, l]$。
 
-通常比：
+### 3.2 逆辛傅立葉轉換 (ISFFT)
+ISFFT 將訊號從延遲-都卜勒域映射到時頻域網格 $X_{TF}[m, n]$，其中 $m$ 代表子載波索引，$n$ 代表時間槽索引。其二維離散數學公式定義為：
 
-```text
-精準量振幅
-```
+$$X_{TF}[m, n] = \frac{1}{\sqrt{MN}} \sum_{k=0}^{M-1} \sum_{l=0}^{N-1} X_{DD}[k, l] e^{j2\pi \left( \frac{nk}{M} - \frac{ml}{N} \right)}$$
 
-更容易。
-
-也更抗：
-
-- amplitude distortion
-- gain variation
-- clipping
-
----
-
-# 專案完整流程
-
-整體流程：
-
-```text
-1. 產生 QAM symbols
-    ↓
-2. 放入 OTFS DD grid
-    ↓
-3. OTFS modulation（ISFFT）
-    ↓
-4. 每個 TF column 做 ZCD 發射
-    ↓
-5. 通道傳輸
-    ↓
-6. ZCD 接收端用 Least-Squares 還原
-    ↓
-7. inverse OTFS
-    ↓
-8. QAM 解調
-    ↓
-9. 比對 BER
-```
-
-下面一步一步拆開。
-
----
-
-# Step 1 — 產生原始資料
-
-程式：
-
+在 MATLAB 中，此雙重求和轉換可透過對行做 IFFT、對列做 FFT 高效實現：
 ```matlab
-X_int = randi([0 15], M, N);
+X_TF = sqrt(M/N) * fft(ifft(X_DD, [], 1), [], 2);
 ```
 
-意思：
+### 3.3 辛傅立葉轉換 (SFFT)
+接收端使用 SFFT 將還原的時頻符號 $X_{TF, rec}[m, n]$ 逆轉回延遲-都卜勒域：
 
-```text
-隨機產生 M×N 個數字
-```
+$$X_{DD, rec}[k, l] = \frac{1}{\sqrt{MN}} \sum_{m=0}^{M-1} \sum_{n=0}^{N-1} X_{TF, rec}[m, n] e^{-j2\pi \left( \frac{nk}{M} - \frac{ml}{N} \right)}$$
 
-例如：
-
-```text
-0 ~ 15
-```
-
-因為：
-
-```text
-16QAM
-```
-
-需要：
-
-```text
-16 個 symbol
-```
-
----
-
-# Step 2 — QAM 調變
-
-程式：
-
+**MATLAB 實作程式碼：**
 ```matlab
-X_DD = qammod(X_int,16,'UnitAveragePower',true);
-```
-
-作用：
-
-把：
-
-```text
-整數
-```
-
-變成：
-
-```text
-複數星座點
-```
-
-例如：
-
-```text
-3 → -1+1j
-12 → 1-3j
-```
-
-這些複數值就是：
-
-```text
-真正準備傳輸的 symbol
+X_DD_rec = sqrt(N/M) * fft(ifft(X_TF_rec, [], 2), [], 1);
 ```
 
 ---
 
-# Step 3 — OTFS 調變
+# 4. ZCD 傳輸
 
-## 做 ISFFT
+在特定的時間槽 $n$ 中，將該時段的時頻符號向量 $\mathbf{a}_n = [a_1, a_2, \dots, a_M]^T$ 
 
-程式：
+ (即 $X_{TF}[ :, n]$ ) 映射為連續時間波形。為了實現解耦，傳輸訊號中引入了一個位於第 $M+1$ 個子載波位置的強正弦保護載波（Strong Carrier），振幅為 $A_c$。
+ 
+### 4.1 發射訊號
+合成的連續時域信號 $s_{tx}(t)$ 定義如下：
 
+$$s_{tx}(t) = \sum_{k=1}^{M} 2\Re [ a_k e^{j2\pi k f_0 t} ] + 2\Re [ A_c e^{j2\pi(M+1)f_0 t} ]$$
+
+展開實部後可表示為：
+$$s_{tx}(t) = 2 \sum_{k=1}^{M} \left[ \Re\{a_k\}\cos(2\pi k f_0 t) - \Im\{a_k\}\sin(2\pi k f_0 t) \right] + 2A_c\cos(2\pi(M+1)f_0 t)$$
+
+### 4.2 MATLAB 實作波形合成
 ```matlab
-X_TF = sqrt(M/N)*fft(ifft(X_DD,[],1),[],2);
-```
-
-先看：
-
-```text
-X_DD
-```
-
-是：
-
-```text
-Delay-Doppler grid
-```
-
-經過：
-
-```text
-ISFFT
-```
-
-變成：
-
-```text
-X_TF
-```
-
-也就是：
-
-```text
-Time-Frequency symbols
-```
-
-可以理解成：
-
-```text
-把資料從「表格座標」
-轉換成
-「可以拿去發射的頻率內容」
-```
-
----
-
-# Step 4 — ZCD 發射端
-
-這一步最關鍵。
-
-對每個：
-
-```matlab
-X_TF(:,n)
-```
-
-做：
-
-```matlab
-zcd_tx_symbol()
-```
-
----
-
-# 它在做什麼？
-
-把：
-
-```text
-複數係數 ak
-```
-
-變成：
-
-```text
-實數波形 s(t)
-```
-
-程式核心：
-
-```matlab
-s_tx = s_tx + 2*real(ak(k)*exp(1j*2*pi*k*f0*t));
-```
-
-意思：
-
-```text
-把很多不同頻率的 sin 波疊加起來
-```
-
-每個：
-
-```text
-頻率
-```
-
-都乘上一個：
-
-```text
-ak
-```
-
-係數。
-
----
-
-## 類比理解
-
-可以想像：
-
-```text
-ak(1) 控制第1條聲音
-ak(2) 控制第2條聲音
-ak(3) 控制第3條聲音
-...
-```
-
-最後全部混在一起。
-
-形成：
-
-```text
-一條可發射的 waveform
-```
-
----
-
-# Step 5 — 通道
-
-目前先用：
-
-```text
-ideal channel
-```
-
-也就是：
-
-```matlab
-rx = tx;
-```
-
-先確認：
-
-```text
-系統本身可不可行
-```
-
-還沒加入：
-
-- noise
-- fading
-- multipath
-
----
-
-# Step 6 — ZCD 接收端（最重要）
-
-這是整個專案最後成功的關鍵。
-
----
-
-# 一開始失敗在哪？
-
-最早版本用：
-
-```matlab
-poly(rk)
-```
-
-從：
-
-```text
-roots
-```
-
-推回：
-
-```text
-coefficient
-```
-
-結果：
-
-```text
-有時成功
-有時完全爆掉
-```
-
-BER 很高。
-
----
-
-# 為什麼失敗？
-
-因為：
-
-```text
-高階 polynomial coefficient reconstruction
-數值上不穩定
-```
-
-簡單講：
-
-```text
-數學正確
-但電腦算起來容易炸掉
-```
-
----
-
-# Least-Squares 解碼
-
-這一步是整個專案最後成功的關鍵。
-
-如果前面：
-
-```text
-OTFS modulation
-→ waveform generation
-```
-
-是在：
-
-```text
-把資料變成波形送出去
-```
-
-那這一步就是：
-
-```text
-從收到的波形
-反推出原本資料
-```
-
----
-
-# 先看發射端做了什麼？
-
-發射端程式：
-
-```matlab
-s_tx = s_tx + 2*real(ak(k)*exp(1j*2*pi*k*f0*t));
-```
-
-如果把它展開，可以理解成：
-
-```text
-波形 =
-第1個頻率 × ak(1)
-+
-第2個頻率 × ak(2)
-+
-第3個頻率 × ak(3)
-+ ...
-```
-
-也就是：
-
-```text
-很多不同頻率的 sin 波疊加
-```
-
-而：
-
-```text
-ak(k)
-```
-
-決定每個頻率：
-
-- 有多強
-- 相位多少
-
----
-
-# RX接收細節
-
-接收端拿到：
-
-```matlab
-rx_signal
-```
-
-例如：
-
-```text
-0.42
-0.85
-0.11
--0.62
-...
-```
-
-這是一整條波形。
-
-但我們真正想知道的是：
-
-```text
-ak(1)
-ak(2)
-ak(3)
-...
-ak(M)
-```
-
-因為：
-
-```text
-這些 ak
-才是真正承載資料的內容
-```
-
----
-
-# 所以接收端怎麼做？
-
-我們先建立一個：
-
-```text
-Fourier basis matrix
-```
-
-程式：
-
-```matlab
-A = zeros(L,M);
-
+s_tx = zeros(size(t));
 for k = 1:M
+    s_tx = s_tx + 2 * real(ak(k) * exp(1j * 2 * pi * k * f0 * t));
+end
 
-    A(:,k) = exp(1j*2*pi*k*f0*t(:));
+% 疊加第 M+1 個子載波作為參考強載波
+s_tx = s_tx + 2 * real(carrier_amp * exp(1j * 2 * pi * (M+1) * f0 * t));
+```
 
+---
+
+# 5. ZCD 接收機
+
+本模擬假設理想通道，接收訊號 $r(t) = s_{tx}(t)$。接收端利用子載波之間的**正交性 (Orthogonality)** 進行載波的分離與資料恢復。
+
+### 5.1 強載波正交投影估計
+由於子載波之間滿足正交條件：
+
+$$
+\frac{1}{T}\int_{0}^{T} e^{j2\pi k f_0 t} e^{-j2\pi m f_0 t} dt = \delta_{km} = \begin{cases}
+1, & k=m \\
+0, & k \neq m 
+\end{cases}
+$$
+
+
+因此，將接收訊號 $r(t)$ 投影至第 $M+1$ 子載波空間，可完美消去前 $M$ 個資料項的干擾，精確提取出載波振幅 $A_c$：
+
+$$\hat{A}_c = \Re \left( \frac{1}{T} \int_{0}^{T} r(t) e^{-j2\pi(M+1)f_0 t} dt \right)$$
+
+
+**MATLAB 離散時間近似（均值運算）：**
+```matlab
+carrier_est = real(mean(rx_signal(:) .* exp(-1j * 2 * pi * (M+1) * f0 * t(:))));
+```
+
+### 5.2 載波消去 
+自接收信號中扣除估計出的強載波成分，得到純資料波形 $y(t)$：
+$$y(t) = r(t) - 2\hat{A}_c\cos(2\pi(M+1)f_0 t)$$
+
+```matlab
+y = rx_signal(:) - 2 * carrier_est * real(exp(1j * 2 * pi * (M+1) * f0 * t(:)));
+```
+
+### 5.3 傅立葉基底構建與最小平方法 (LS) 估計
+將離散觀測時間點 $t_n$ 帶入，建立大小為 $K \times M$ 的傅立葉基底複數矩陣 $\mathbf{A}$（其中 $K$ 為取樣點數）：
+
+$$\mathbf{A} = \begin{bmatrix} 
+e^{j2\pi (1) f_0 t_1} & e^{j2\pi (2) f_0 t_1} & \dots & e^{j2\pi M f_0 t_1} \\
+e^{j2\pi (1) f_0 t_2} & e^{j2\pi (2) f_0 t_2} & \dots & e^{j2\pi M f_0 t_2} \\
+\vdots & \vdots & \ddots & \vdots \\
+e^{j2\pi (1) f_0 t_K} & e^{j2\pi (2) f_0 t_K} & \dots & e^{j2\pi M f_0 t_K}
+\end{bmatrix}$$
+
+```matlab
+A = zeros(length(t), M);
+for k = 1:M
+    A(:, k) = exp(1j * 2 * pi * k * f0 * t(:));
 end
 ```
 
----
+由於發射信號包含了正反頻率成分（即 $2\Re\{x\} = x + x^*$），接收端重建本質上是求解一個過定線性方程組（Overdetermined System）。我們利用廣義逆矩陣執行**最小平方法 (Least Squares)** 估計，還原出原始複數符號向量 $\mathbf{\hat{a}}$：
 
-# A 是什麼？
+$$\mathbf{\hat{a}} = \arg\min_{\mathbf{a}} \|\mathbf{y} - 2\Re\{\mathbf{A}\mathbf{a}\}\|^2 = (\mathbf{A}^H \mathbf{A})^{-1} \mathbf{A}^H \mathbf{y}$$
 
-可以把它理解成：
+註：在無雜訊且取樣率足夠時， $\mathbf{A}^H \mathbf{A}$ 趨近於對角矩陣。*
 
-```text
-所有可能的基礎波形資料庫
-```
-
-例如：
-
-```text
-A(:,1) = 第1個頻率波形
-A(:,2) = 第2個頻率波形
-A(:,3) = 第3個頻率波形
-...
-```
-
-每一欄都是：
-
-```text
-一種標準頻率波形模板
-```
-
----
-
-# 舉例
-
-假設：
-
-```text
-M = 3
-```
-
-那：
-
-```text
-A =
-[
-頻率1模板
-頻率2模板
-頻率3模板
-]
-```
-
----
-
-# 接著做什麼？
-
-接收波形：
-
-```text
-y
-```
-
-其實就是：
-
-```text
-這些模板的線性組合
-```
-
-也就是：
-
-```text
-y = A * ak
-```
-
-其中：
-
-```text
-y   = 接收到的 waveform
-A   = 所有頻率模板
-ak  = 每個模板的權重（我們想求的答案）
-```
-
----
-
-# 簡單來說：
-
-如果：
-
-```text
-A(:,1) = 頻率1
-A(:,2) = 頻率2
-```
-
-那：
-
-```text
-ak(1)=0.8
-ak(2)=0.3
-```
-
-就表示：
-
-```text
-接收波形
-=
-0.8 × 頻率1
-+
-0.3 × 頻率2
-```
-
----
-
-# 現在我們已知什麼？
-
-我們知道：
-
-## 已知：
-
-```text
-A
-```
-
-因為：
-
-```text
-頻率是我們自己定義的
-```
-
----
-
-也知道：
-
-```text
-y
-```
-
-因為：
-
-```text
-這就是收到的波形
-```
-
----
-
-# 唯一不知道的是：
-
-```text
-ak
-```
-
-也就是：
-
-```text
-每個頻率用了多少權重
-```
-
----
-
-# 所以變成解方程式
-
-變成：
-
-```text
-已知：
-A
-y
-
-求：
-ak
-```
-
-數學上：
-
-```text
-A * ak = y
-```
-
----
-
-# MATLAB 怎麼解？
-
-就是：
-
+**MATLAB 矩陣左除實作：**
 ```matlab
 ak_rec = A \ y;
 ```
 
 ---
 
-# 反斜線 `\`
+# 6. 實驗結果驗證
 
-MATLAB 的：
-
-```matlab
-\
-```
-
-代表：
-
-```text
-求解線性方程組
-```
-
-不是除法。
-
-可以理解成：
-
-```text
-幫我找到一組 ak
-讓：
-
-A*ak ≈ y
-```
-
----
-
-# 為什麼使用 Least-Squares？
-
-因為：
-
-實際上不一定：
-
-```text
-完全相等
-```
-
-例如：
-
-- noise
-- sampling error
-- 數值誤差
-
-都可能存在。
-
-所以 MATLAB 找的是：
-
-```text
-誤差最小
-```
-
-那組答案。
-
-也就是：
-
-```text
-找 ak
-
-使得：
-
-||A*ak - y||
-
-最小
-```
-
-意思：
-
-```text
-讓「重建波形」與「接收波形」差距最小
-```
-
----
-
-# 最後得到：
-
-```matlab
-ak_rec
-```
-
-也就是：
-
-```text
-還原出的 OTFS TF-domain symbol
-```
-
-再送回：
-
-```text
-inverse OTFS
-```
-
-即可還原：
-
-```text
-X_DD
-```
-
----
-
-# 為何這個方法最後成功？
-
-因為它：
-
-```text
-直接從 waveform 找係數
-```
-
-不需要：
-
-```text
-zero crossing
-→ roots
-→ polynomial
-```
-
-這種容易數值不穩定的方法。
-
-因此：
-
-```text
-更穩定
-更容易計算
-更不容易失敗
-```
-
----
-
-# 實驗結果
-
-使用 Least-Squares decoder 後：
-
-```text
-Trials         : 200
-Mean BER       : 0.00000000
-Success Rate   : 100%
-```
-
-代表：
-
-```text
-所有測試全部成功
-```
-
-也就是：
-
-```text
-傳送出去什麼
-就完整收回什麼
-```
-
----
-
-# Step 7 — inverse OTFS
-
-拿回：
-
-```text
-X_TF_rec
-```
-
-再轉回：
-
-```text
-X_DD_rec
-```
-
-程式：
-
-```matlab
-X_DD_rec =
-sqrt(N/M) *
-fft(
-    ifft(X_TF_rec,[],2),
-[],1);
-```
-
----
-
-# Step 8 — 解調
-
-把：
-
-```text
-complex symbols
-```
-
-轉回：
-
-```text
-0~15
-```
-
-程式：
-
-```matlab
-data_rec = qamdemod(...)
-```
-
----
-
-# Step 9 — BER 驗證
-
-最後比較：
-
-```text
-發送前
-```
-
-與：
-
-```text
-接收後
-```
-
-是否一樣。
-
-程式：
-
-```matlab
-ber = mean(X_int(:) ~= data_rec(:));
-```
-
-如果：
-
-```text
-BER = 0
-```
-
-代表：
-
-```text
-100% recover success
-```
-
----
-
-# 最終實驗結果
-
-Monte Carlo：
+### 輸出：
 
 ```text
 Trials         : 200
@@ -1052,58 +173,12 @@ Max BER        : 0.00000000
 Success Rate   : 100%
 ```
 
-NMSE：
-
-```text
-Mean NMSE      : -287.20 dB
-```
-
 ![image](output.png)
 
-代表：
 
-```text
-還原結果幾乎與原始訊號完全一致
-```
+# 7. 改進方向
 
-已接近 MATLAB double precision 極限。
-
----
-
-# 最終結論
-
-本專案成功驗證：
-
-```text
-OTFS + ZCD 是可行的
-```
-
-而且：
-
-```text
-可完整 end-to-end recover
-BER = 0
-```
-
----
-
-# 執行方式
-
-執行：
-
-```matlab
-otfs_zcd_end_to_end_montecarlo
-```
-
-即可。
-
----
-
-# 後續可以繼續研究
-
-推薦方向：
-
-## 1. AWGN channel
+### 1. AWGN channel
 
 加入雜訊：
 
@@ -1113,7 +188,7 @@ BER vs SNR
 
 ---
 
-# 2. PAPR
+### 2. PAPR
 
 比較：
 
@@ -1125,7 +200,7 @@ ZCD-OTFS
 
 ---
 
-# 3. 真實無線通道
+### 3. 真實無線通道
 
 加入：
 
@@ -1136,10 +211,3 @@ ZCD-OTFS
 ---
 
 
-本專案為 OTFS + ZCD waveform integration MATLAB research prototype。
-
-用於驗證：
-
-```text
-OTFS over Zero Crossing Detection waveform transmission feasibility
-```
