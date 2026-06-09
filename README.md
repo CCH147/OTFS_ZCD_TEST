@@ -58,15 +58,6 @@ $$X_{TF}[m, n] = \frac{1}{\sqrt{MN}} \sum_{k=0}^{M-1} \sum_{l=0}^{N-1} X_{DD}[k,
 X_TF = sqrt(M/N) * fft(ifft(X_DD, [], 1), [], 2);
 ```
 
-### 3.3 辛傅立葉轉換 (SFFT)
-接收端使用 SFFT 將還原的時頻符號 $X_{TF, rec}[m, n]$ 逆轉回延遲-都卜勒域：
-
-$$X_{DD, rec}[k, l] = \frac{1}{\sqrt{MN}} \sum_{m=0}^{M-1} \sum_{n=0}^{N-1} X_{TF, rec}[m, n] e^{-j2\pi \left( \frac{nk}{M} - \frac{ml}{N} \right)}$$
-
-**MATLAB 實作程式碼：**
-```matlab
-X_DD_rec = sqrt(N/M) * fft(ifft(X_TF_rec, [], 2), [], 1);
-```
 
 ---
 
@@ -147,7 +138,8 @@ for k = 1:M
 end
 ```
 
-由於發射信號包含了正反頻率成分（即 $2\Re\{x\} = x + x^*$），接收端重建本質上是求解一個過定線性方程組（Overdetermined System）。我們利用廣義逆矩陣執行**最小平方法 (Least Squares)** 估計，還原出原始複數符號向量 $\mathbf{\hat{a}}$：
+由於發射信號包含了正反頻率成分（即 $2\Re\{x\} = x + x^*$），接收端重建本質上是求解一個過定線性方程組（Overdetermined System）。我們利用廣義逆矩陣執行**最小平方法 (Least Squares)** 估計，還原出原始時頻符號
+$\mathbf{\hat{a}}$：
 
 $$\mathbf{\hat{a}} = \arg\min_{\mathbf{a}} \|\mathbf{y} - 2\Re\{\mathbf{A}\mathbf{a}\}\|^2 = (\mathbf{A}^H \mathbf{A})^{-1} \mathbf{A}^H \mathbf{y}$$
 
@@ -156,6 +148,16 @@ $$\mathbf{\hat{a}} = \arg\min_{\mathbf{a}} \|\mathbf{y} - 2\Re\{\mathbf{A}\mathb
 **MATLAB 矩陣左除實作：**
 ```matlab
 ak_rec = A \ y;
+```
+
+### 5.4 辛傅立葉轉換 (SFFT)
+使用 SFFT 將還原的時頻符號 $X_{TF, rec}[m, n]$ 逆轉回延遲-都卜勒域：
+
+$$X_{DD, rec}[k, l] = \frac{1}{\sqrt{MN}} \sum_{m=0}^{M-1} \sum_{n=0}^{N-1} X_{TF, rec}[m, n] e^{-j2\pi \left( \frac{nk}{M} - \frac{ml}{N} \right)}$$
+
+**MATLAB 實作程式碼：**
+```matlab
+X_DD_rec = sqrt(N/M) * fft(ifft(X_TF_rec, [], 2), [], 1);
 ```
 
 ---
