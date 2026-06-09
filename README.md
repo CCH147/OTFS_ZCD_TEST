@@ -160,6 +160,8 @@ $$X_{DD, rec}[k, l] = \frac{1}{\sqrt{MN}} \sum_{m=0}^{M-1} \sum_{n=0}^{N-1} X_{T
 X_DD_rec = sqrt(N/M) * fft(ifft(X_TF_rec, [], 2), [], 1);
 ```
 
+最後將 $$X_{DD, rec}[k, l]$$ 裡的每個資料經由QAM解調，還原原始資料 $X_int$ 
+
 ---
 
 # 6. 實驗結果驗證
