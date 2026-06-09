@@ -59,24 +59,23 @@ for trial = 1:NUM_TRIALS
 
         ak = X_TF(:,n);
 
-        [tx,carrier] = ...
+        [tx] = ...
             zcd_tx_symbol( ...
             ak, ...
             f0, ...
             fs, ...
             t);
 
-        [ak_rec,is_valid] = ...
+        [ak_rec] = ...
             zcd_rx_symbol_ls( ...
-            tx, ...
-            carrier, ...
+            tx, ... 
             f0, ...
             t, ...
             M);
         
-        if ~is_valid
-            ak_rec = ak;
-        end
+        %if ~is_valid
+            %ak_rec = ak;
+        %end
 
         X_TF_rec(:,n) = ak_rec;
 
@@ -227,7 +226,7 @@ axis equal;
 
 grid on;
 
-function [s_tx, carrier_amp] = zcd_tx_symbol(ak,f0,fs,t)
+function [s_tx] = zcd_tx_symbol(ak,f0,fs,t)
 
 % ZCD transmitter for one symbol vector
 %
@@ -261,76 +260,16 @@ s_tx = s_tx + ...
 
 end
 
-function [ak_rec,num_zero] = zcd_rx_symbol(rx_signal,carrier_amp,f0,fs,t,M)
-
-% ZCD receiver for one waveform
-%
-% input:
-%   rx_signal
-%   carrier_amp
-%
-% output:
-%   ak_rec
-%   num_zero
-
-ak_rec = zeros(M,1);
-
-%% zero crossing detection
-idx = find( ...
-    rx_signal(1:end-1) .* ...
-    rx_signal(2:end) < 0);
-
-num_zero = length(idx);
-
-if isempty(idx)
-    return;
-end
-
-%% linear interpolation
-y1 = rx_signal(idx);
-
-y2 = rx_signal(idx+1);
-
-t1 = t(idx);
-
-tk = t1 + ...
-    (-y1)./(y2-y1) .* (1/fs);
-
-%% roots
-rk = exp(1j*2*pi*f0*tk);
-
-%% polynomial reconstruction
-p_recon = poly(rk).';
-
-%% scale correction
-scale = carrier_amp / p_recon(1);
-
-p_scaled = p_recon * scale;
-
-%% coefficient extraction
-mid = (length(p_scaled)+1)/2;
-
-if mid+M > length(p_scaled)
-    return;
-end
-
-conj_part = p_scaled(mid+1:mid+M);
-
-ak_rec = conj(conj_part(:));
-
-end
-
-function [ak_rec,is_valid] = ...
+function [ak_rec] = ...
     zcd_rx_symbol_ls( ...
     rx_signal, ...
-    carrier_amp, ...
     f0, ...
     t, ...
     M)
-
+carrier = real(mean(rx_signal(:) .* exp(-1j * 2 * pi * (M+1) * f0 * t(:))));
 ak_rec = zeros(M,1);
 
-is_valid = false;
+%is_valid = false;
 
 L = length(t);
 
@@ -345,10 +284,6 @@ for k = 1:M
 end
 
 %% remove carrier
-carrier = ...
-    2*real( ...
-    carrier_amp * ...
-    exp(1j*2*pi*(M+1)*f0*t(:)));
 
 y = rx_signal(:) - carrier;
 
@@ -367,7 +302,6 @@ if any(~isfinite(ak_rec))
     return;
 end
 
-is_valid = true;
+%is_valid = true;
 
 end
-
