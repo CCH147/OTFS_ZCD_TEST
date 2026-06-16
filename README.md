@@ -65,15 +65,15 @@ X_TF = sqrt(M/N) * fft(ifft(X_DD, [], 1), [], 2);
 
 在特定的時間槽 $n$ 中，將該時段的時頻符號向量 $\mathbf{a}_n = [a_1, a_2, \dots, a_M]^T$ 
 
- (即 $X_{TF}[ :, n]$ ) 映射為連續時間波形。傳輸訊號中引入了一個位於第 $M+1$ 個子載波位置的強正弦保護載波，振幅為 $A_c$。
+ (即 $X_{TF}[ :, n]$ ) 映射為連續時間波形。
  
 ### 4.1 發射訊號
 合成的連續時域信號 $s_{tx}(t)$ 定義如下：
 
-$$s_{tx}(t) = \sum_{k=1}^{M} 2\Re [ a_k e^{j2\pi k f_0 t} ] + 2\Re [ A_c e^{j2\pi(M+1)f_0 t} ]$$
+$$s_{tx}(t) = \sum_{k=1}^{M} 2\Re [ a_k e^{j2\pi k f_0 t} ] 
 
 展開實部後可表示為：
-$$s_{tx}(t) = 2 \sum_{k=1}^{M} \left[ \Re\{a_k\}\cos(2\pi k f_0 t) - \Im\{a_k\}\sin(2\pi k f_0 t) \right] + 2A_c\cos(2\pi(M+1)f_0 t)$$
+$$s_{tx}(t) = 2 \sum_{k=1}^{M} \left[ \Re\{a_k\}\cos(2\pi k f_0 t) - \Im\{a_k\}\sin(2\pi k f_0 t) \right] 
 
 ### 4.2 MATLAB 實作波形合成
 ```matlab
@@ -82,8 +82,6 @@ for k = 1:M
     s_tx = s_tx + 2 * real(ak(k) * exp(1j * 2 * pi * k * f0 * t));
 end
 
-% 疊加第 M+1 個子載波作為參考強載波
-s_tx = s_tx + 2 * real(carrier_amp * exp(1j * 2 * pi * (M+1) * f0 * t));
 ```
 
 ---
@@ -92,36 +90,7 @@ s_tx = s_tx + 2 * real(carrier_amp * exp(1j * 2 * pi * (M+1) * f0 * t));
 
 本模擬假設理想通道，接收訊號 $r(t) = s_{tx}(t)$。接收端利用子載波之間的**正交性 (Orthogonality)** 進行載波的分離與資料恢復。
 
-### 5.1 強載波正交投影估計
-由於子載波之間滿足正交條件：
-
-$$
-\frac{1}{T}\int_{0}^{T} e^{j2\pi k f_0 t} e^{-j2\pi m f_0 t} dt = \delta_{km} = \begin{cases}
-1, & k=m \\
-0, & k \neq m 
-\end{cases}
-$$
-
-
-因此，將接收訊號 $r(t)$ 投影至第 $M+1$ 子載波空間，可消去前 $M$ 個資料項的干擾，提取出強載波振幅 $A_c$：
-
-$$\hat{A}_c = \Re \left( \frac{1}{T} \int_{0}^{T} r(t) e^{-j2\pi(M+1)f_0 t} dt \right)$$
-
-
-**MATLAB 離散時間近似（均值運算）：**
-```matlab
-carrier_est = real(mean(rx_signal(:) .* exp(-1j * 2 * pi * (M+1) * f0 * t(:))));
-```
-
-### 5.2 強載波消去 
-自接收信號中扣除估計出的強載波成分，得到純資料波形 $y(t)$：
-$$y(t) = r(t) - 2\hat{A}_c\cos(2\pi(M+1)f_0 t)$$
-
-```matlab
-y = rx_signal(:) - 2 * carrier_est * real(exp(1j * 2 * pi * (M+1) * f0 * t(:)));
-```
-
-### 5.3 傅立葉基底構建與最小平方法 (LS) 估計
+### 5.1 傅立葉基底構建與最小平方法 (LS) 估計
 將離散觀測時間點 $t_n$ 帶入，建立大小為 $K \times M$ 的傅立葉基底複數矩陣 $\mathbf{A}$（其中 $K$ 為取樣點數）：
 
 $$\mathbf{A} = \begin{bmatrix} 
@@ -150,7 +119,7 @@ $$\mathbf{\hat{a}} = \arg\min_{\mathbf{a}} \|\mathbf{y} - 2\Re\{\mathbf{A}\mathb
 ak_rec = A \ y;
 ```
 
-### 5.4 辛傅立葉轉換 (SFFT)
+### 5.2 辛傅立葉轉換 (SFFT)
 使用 SFFT 將還原的時頻符號 $X_{TF, rec}[m, n]$ 逆轉回延遲-都卜勒域：
 
 $$X_{DD, rec}[k, l] = \frac{1}{\sqrt{MN}} \sum_{m=0}^{M-1} \sum_{n=0}^{N-1} X_{TF, rec}[m, n] e^{-j2\pi \left( \frac{nk}{M} - \frac{ml}{N} \right)}$$
