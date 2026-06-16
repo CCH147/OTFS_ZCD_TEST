@@ -224,7 +224,7 @@ $$s_n(t) = 2\,\Re\!\left\[\sum_{m=0}^{M-1} X[n,m] \cdot \exp\!\big[j2\pi (m+1) f
 
 #### 為什麼是 $(m+1)f_0$ 而非 $mf_0$？
 
-傳統 OFDM 使用 $mf_0$（包含 DC 子載波 $m=0$）。但在 ZCD-OTFS 中，$m=0$ 會導致：
+傳統 OFDM 使用 $mf_0$（包含 DC 子載波 $m=0$）。但在 ZCD-OTFS 中， $m=0$ 會導致：
 
 $$\sin(2\pi \cdot 0 \cdot f_0 \cdot t) = 0$$
 
@@ -264,11 +264,11 @@ $$f_c = (M+1) \cdot f_0$$
 
 $$A_c = \frac{1}{2}\sum_{k=0}^{N-1}\sum_{l=0}^{M-1} |x[k,l]| + 1$$
 
-**設計原理**：載波振幅約為所有符元振幅總和的一半再加上一個偏移量 1。在 QPSK 單位功率下，$|x[k,l]| = 1/\sqrt{2}$ 為定值，因此：
+**設計原理**：載波振幅約為所有符元振幅總和的一半再加上一個偏移量 1。在 QPSK 單位功率下， $|x[k,l]| = 1/\sqrt{2}$ 為定值，因此：
 
 $$A_c = \frac{NM}{2\sqrt{2}} + 1$$
 
-對於 $N=4, M=8$：$A_c = 32/(2\sqrt{2}) + 1 \approx 12.3$。
+對於 $N=4, M=8: A_c = 32/(2\sqrt{2}) + 1 \approx 12.3$ 。
 
 #### 完整發射訊號
 
@@ -334,7 +334,7 @@ $$\mathbf{x} = \begin{bmatrix}
 a_0 & b_0 & a_1 & b_1 & \cdots & a_{M-1} & b_{M-1} & A_c
 \end{bmatrix}^T$$
 
-矩陣 $\mathbf{A}$ 的第 $i$ 列構建如下（$\theta_m = 2\pi(m+1)f_0 t_i$）：
+矩陣 $\mathbf{A}$ 的第 $i$ 列構建如下（ $\theta_m = 2\pi(m+1)f_0 t_i$ ）：
 
 $$\mathbf{A}[i, :] = \begin{bmatrix}
 \cos\theta_0 & -\sin\theta_0 & \cos\theta_1 & -\sin\theta_1 & \cdots & \cos\theta_{M-1} & -\sin\theta_{M-1} & \cos(2\pi f_c t_i^{\text{abs}})
@@ -344,7 +344,7 @@ $$\mathbf{A}[i, :] = \begin{bmatrix}
 
 $$\mathbf{A} \mathbf{x} = \mathbf{0}$$
 
-共 $K$ 條方程式，$2M+1$ 個未知數。
+共 $K$ 條方程式， $2M+1$ 個未知數。
 
 ---
 
@@ -352,7 +352,7 @@ $$\mathbf{A} \mathbf{x} = \mathbf{0}$$
 
 #### 為什麼不能用普通最小平方法？
 
-對齊次方程 $\mathbf{A}\mathbf{x} = \mathbf{0}$，直接使用 `A\b`（即 $\mathbf{x} = \mathbf{A}^+ \mathbf{0}$）只會得到 $\mathbf{x} = \mathbf{0}$，毫無意義。
+對齊次方程 $\mathbf{A}\mathbf{x} = \mathbf{0}$ ，直接使用 `A\b`（即 $\mathbf{x} = \mathbf{A}^+ \mathbf{0}$ ）只會得到 $\mathbf{x} = \mathbf{0}$，毫無意義。
 
 正確做法：求 $\mathbf{A}$ 的**零空間（null space）**。
 
@@ -361,21 +361,25 @@ $$\mathbf{A} \mathbf{x} = \mathbf{0}$$
 $$\mathbf{A} = \mathbf{U} \boldsymbol{\Sigma} \mathbf{V}^T$$
 
 其中：
-- $\mathbf{U} \in \mathbb{R}^{K \times K}$：左奇異向量矩陣
-- $\boldsymbol{\Sigma} \in \mathbb{R}^{K \times (2M+1)}$：對角奇異值矩陣，$\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{2M+1} \geq 0$
-- $\mathbf{V} \in \mathbb{R}^{(2M+1) \times (2M+1)}$：右奇異向量矩陣
+- $\mathbf{U} \in \mathbb{R}^{K \times K}$ ：左奇異向量矩陣
+- $\boldsymbol{\Sigma} \in \mathbb{R}^{K \times (2M+1)}$ ：對角奇異值矩陣， $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{2M+1} \geq 0$
+- $\mathbf{V} \in \mathbb{R}^{(2M+1) \times (2M+1)}$ ：右奇異向量矩陣
 
 #### 最小化問題
 
 求解：
 
-$$\min_{\|\mathbf{x}\|_2 = 1} \|\mathbf{A}\mathbf{x}\|_2$$
+$$
+\min_{\|\mathbf{x}\|_2 = 1} \|\mathbf{A}\mathbf{x}\|_2
+$$
 
 利用 SVD 性質，對任意單位向量 $\mathbf{x}$：
 
 $$\|\mathbf{A}\mathbf{x}\|_2^2 = \sum_{j=1}^{2M+1} \sigma_j^2 |\mathbf{v}_j^T \mathbf{x}|^2$$
 
-在約束 $\|\mathbf{x}\|_2 = 1$ 下（即 $\sum_j |\mathbf{v}_j^T\mathbf{x}|^2 = 1$），最小值發生在 $\mathbf{x}$ 與 $\mathbf{v}_{2M+1}$（最小奇異值對應的右奇異向量）共線時，此時：
+在約束 $\|\mathbf{x}\|_2 = 1$ 下（即 $\sum_j |\mathbf{v}_j^T\mathbf{x}|^2 = 1$)
+
+最小值發生在 $\mathbf{x}$ 與 $\mathbf{v}_{2M+1}$（最小奇異值對應的右奇異向量）共線時，此時：
 
 $$\|\mathbf{A}\mathbf{v}_{2M+1}\|_2 = \sigma_{\min}$$
 
@@ -767,14 +771,13 @@ python zcd_monte_carlo.py
 
 | 步驟 | 公式 |
 |---|---|
-| ISFFT | $\mathbf{X}_{\text{TF}} = \mathbf{F}_N \cdot \mathbf{x}_{\text{DD}} \cdot \mathbf{F}_M^H$ |
 | 時域訊號（單槽） | $s_n(t) = 2\Re\{\sum_m X[n,m] e^{j2\pi(m+1)f_0 t}\}$ |
 | 載波振幅 | $A_c = \frac{1}{2}\sum\|x[k,l]\| + 1$ |
 | 零交叉內插 | $t_k = t_i + \frac{-s[i]}{s[i+1]-s[i]} T_s$ |
-| 齊次系統 | $\mathbf{A}\mathbf{x} = \mathbf{0}$，$\mathbf{A} \in \mathbb{R}^{K \times (2M+1)}$ |
+| 齊次系統 | $\mathbf{A}\mathbf{x} = \mathbf{0}$， $\mathbf{A} \in \mathbb{R}^{K \times (2M+1)}$ |
 | SVD 解 | $\hat{\mathbf{x}} = \arg\min_{\|\mathbf{x}\|=1} \|\mathbf{Ax}\| = \mathbf{v}_{2M+1}$ |
 | 全域歸一化 | $\alpha = \sqrt{NM / \sum\|\hat{X}\|^2}$ |
-| SFFT | $\hat{\mathbf{x}}_{\text{DD}} = \mathbf{F}_N^H \cdot \hat{\mathbf{X}}_{\text{TF}} \cdot \mathbf{F}_M$ |
+| SFFT | $x[k,l] = \frac{1}{\sqrt{NM}} \sum_{n=0}^{N-1} \sum_{m=0}^{M-1} X[n,m] \,\exp\!\left[-j2\pi\left(\frac{nk}{N} - \frac{ml}{M}\right)\right]$ |
 | DD 通道 | $y[k,l] = \sum_p h_p \cdot x[(k-k_p)_N, (l-l_p)_M] \cdot e^{j\phi_p}$ |
 
 ### 8.3 SVD 條件數與穩定性
@@ -784,7 +787,7 @@ python zcd_monte_carlo.py
 | $\kappa(\mathbf{A})$ | $10^8 \sim 10^9$ |
 | $\sigma_{\min}$ | $10^{-9} \sim 10^{-7}$ |
 | $\sigma_{\max}$ | $\sim 10^0$ |
-| 數值精度 | 雙精度 float64，$\epsilon \approx 2.2\times 10^{-16}$，安全 |
+| 數值精度 | 雙精度 float64， $\epsilon \approx 2.2\times 10^{-16}$，安全 |
 
 ---
 
