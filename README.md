@@ -70,10 +70,10 @@ X_TF = sqrt(M/N) * fft(ifft(X_DD, [], 1), [], 2);
 ### 4.1 發射訊號
 合成的連續時域信號 $s_{tx}(t)$ 定義如下：
 
-$$s_{tx}(t) = \sum_{k=1}^{M} 2\Re [ a_k e^{j2\pi k f_0 t} ] 
+$$s_{tx}(t) = \sum_{k=1}^{M} 2\Re [ a_k e^{j2\pi k f_0 t} ] $$
 
 展開實部後可表示為：
-$$s_{tx}(t) = 2 \sum_{k=1}^{M} \left[ \Re\{a_k\}\cos(2\pi k f_0 t) - \Im\{a_k\}\sin(2\pi k f_0 t) \right] 
+$$s_{tx}(t) = 2 \sum_{k=1}^{M} \left[ \Re\{a_k\}\cos(2\pi k f_0 t) - \Im\{a_k\}\sin(2\pi k f_0 t) \right] $$
 
 ### 4.2 MATLAB 實作波形合成
 ```matlab
